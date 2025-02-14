@@ -67,7 +67,8 @@ def interpolate_delta(age_deltas, age):
 def standard_aging_curve(row):
     age = float(row["Age"])
     current_war = row["WAR"]
-    total_future_war = 0
+    # Include current WAR in total
+    total_future_war = current_war
 
     # Modified deltas for hitters - more gradual changes
     standard_deltas = {
@@ -94,7 +95,8 @@ def standard_aging_curve(row):
 def standard_aging_curve_pitcher(row):
     age = float(row["Age"])
     current_war = row["WAR"]
-    total_future_war = 0
+    # Include current WAR in total
+    total_future_war = current_war
 
     # Modified deltas for pitchers - even slower decline
     standard_deltas = {
@@ -121,15 +123,16 @@ def standard_aging_curve_pitcher(row):
 def flat_aging_curve(row):
     age = float(row["Age"])
     current_war = row["WAR"]
-    total_future_war = 0
+    # Include current WAR in total
+    total_future_war = current_war
 
-    # Flattened deltas for hitters - much more gradual changes
+    # Flattened deltas for hitters - slightly steeper changes
     flat_deltas = {
-        20: +0.05, 21: +0.05, 22: +0.02, 23: +0.00, 24: -0.02,
-        25: -0.05, 26: -0.07, 27: -0.1, 28: -0.15, 29: -0.18,
-        30: -0.22, 31: -0.25, 32: -0.28, 33: -0.32, 34: -0.35,
-        35: -0.40, 36: -0.45, 37: -0.50, 38: -0.55, 39: -0.60,
-        40: -0.70, 41: -0.80, 42: -0.90
+        20: +0.06, 21: +0.06, 22: +0.03, 23: +0.00, 24: -0.03,
+        25: -0.06, 26: -0.09, 27: -0.12, 28: -0.17, 29: -0.20,
+        30: -0.25, 31: -0.28, 32: -0.32, 33: -0.36, 34: -0.40,
+        35: -0.45, 36: -0.50, 37: -0.55, 38: -0.60, 39: -0.65,
+        40: -0.75, 41: -0.85, 42: -0.95
     }
 
     # Project until age 42
@@ -148,15 +151,16 @@ def flat_aging_curve(row):
 def flat_aging_curve_pitcher(row):
     age = float(row["Age"])
     current_war = row["WAR"]
-    total_future_war = 0
+    # Include current WAR in total
+    total_future_war = current_war
 
-    # Flattened deltas for pitchers - even more gradual changes
+    # Flattened deltas for pitchers - slightly steeper changes
     flat_deltas = {
-        20: +0.02, 21: +0.02, 22: +0.00, 23: -0.02, 24: -0.02,
-        25: -0.05, 26: -0.07, 27: -0.1, 28: -0.15, 29: -0.15,
-        30: -0.18, 31: -0.18, 32: -0.22, 33: -0.22, 34: -0.25,
-        35: -0.28, 36: -0.32, 37: -0.35, 38: -0.40, 39: -0.45,
-        40: -0.50, 41: -0.55, 42: -0.60
+        20: +0.03, 21: +0.03, 22: +0.00, 23: -0.03, 24: -0.03,
+        25: -0.06, 26: -0.09, 27: -0.12, 28: -0.17, 29: -0.17,
+        30: -0.20, 31: -0.20, 32: -0.25, 33: -0.25, 34: -0.28,
+        35: -0.32, 36: -0.36, 37: -0.40, 38: -0.45, 39: -0.50,
+        40: -0.55, 41: -0.60, 42: -0.65
     }
 
     # Project until age 42
