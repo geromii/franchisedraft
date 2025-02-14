@@ -1,8 +1,13 @@
 import streamlit as st
 import pandas as pd
 
-# Set wider page layout
-st.set_page_config(layout="wide")
+
+#page metadata
+st.set_page_config(
+    page_title="Franchise Draft - Beetie Board",
+    page_icon=":baseball:",
+    layout="wide"
+)
 
 # Title and description
 st.title("Franchise Draft - Beetie Board")
