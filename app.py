@@ -322,7 +322,7 @@ with tab1:
             "FangraphsURL"
         ]
         if show_drafted:
-            columns_to_display.append("Drafted")
+            columns_to_display.insert(0, "Drafted")
         
         st.dataframe(
             filtered_hitters[columns_to_display]
@@ -370,7 +370,7 @@ with tab2:
             "FangraphsURL"
         ]
         if show_drafted:
-            columns_to_display.append("Drafted")
+            columns_to_display.insert(0, "Drafted")
         
         st.dataframe(
             filtered_pitchers[columns_to_display]
@@ -413,7 +413,7 @@ with tab3:
         # Columns to display for relievers
         columns_to_display = ["NameASCII", "Team", "IP", "ERA", "FIP", "FangraphsURL"]
         if show_drafted:
-            columns_to_display.append("Drafted")
+            columns_to_display.insert(0, "Drafted")
         
         st.dataframe(
             filtered_relievers[columns_to_display]
