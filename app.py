@@ -159,25 +159,25 @@ def load_drafted_players():
         '1kfOLdBmdbnr0fNgwdLDYQ3CyY-R0m5RZiCslCNjwMb4'
         '/export?format=csv&gid=306625921'
     )
-    # Create a dictionary of player names and whether they're a pitcher
-    drafted_dict = {
-        row['Player']: row['Position'] in ['RHP', 'LHP']
-        for _, row in df.iterrows() if pd.notna(row['Player'])
-    }
+    # Create a dictionary of player names to their draft position
+    drafted_dict = {}
+    for idx, row in df.iterrows():
+        if pd.notna(row['Player']):
+            # idx + 1 represents draft position (1-based indexing)
+            drafted_dict[row['Player']] = idx + 1
     return drafted_dict
 
 # Load drafted players
 drafted_players = load_drafted_players()
 
-# Function to add a Drafted column
+# Function to add a Draft Position column
 def mark_drafted_column(df):
     """
-    Adds a 'Drafted' boolean column indicating
-    if the player's name is in drafted_players.
+    Adds a 'DraftPos' integer column indicating
+    the position where the player was drafted (empty if undrafted)
     """
-    # Use 'Name' column if 'NameASCII' is not present
     name_column = "NameASCII" if "NameASCII" in df.columns else "Name"
-    df["Drafted"] = df[name_column].isin(drafted_players.keys())
+    df["DraftPos"] = df[name_column].map(drafted_players)
     return df
 
 # Filter function
@@ -187,7 +187,7 @@ def filter_drafted(df):
     Otherwise, return all players.
     """
     if not show_drafted:
-        return df[df["Drafted"] == False]
+        return df[df["DraftPos"].isna()]
     return df
 
 # Add custom CSS for muted multiselect colors
@@ -271,7 +271,7 @@ with tab1:
             "FangraphsURL"
         ]
         if show_drafted:
-            columns_to_display.insert(0, "Drafted")
+            columns_to_display.insert(0, "DraftPos")
         
         st.dataframe(
             filtered_hitters[columns_to_display]
@@ -283,9 +283,13 @@ with tab1:
                     format="%.1f"  # Force 1 decimal place
                 )
                 for col in columns_to_display
-                if "WAR" in col and col not in ["NameASCII", "Team", "Position", "Drafted", "FangraphsURL"]
+                if "WAR" in col and col not in ["NameASCII", "Team", "Position", "DraftPos", "FangraphsURL"]
             } | ({
-                "Drafted": st.column_config.CheckboxColumn("Drafted")
+                "DraftPos": st.column_config.NumberColumn(
+                    "Drafted",
+                    format="%d",
+                    default=""  # Show empty string instead of None
+                )
             } if show_drafted else {}) | {
                 "FangraphsURL": st.column_config.LinkColumn(
                     "Fangraphs",
@@ -324,7 +328,7 @@ with tab2:
             "FangraphsURL"
         ]
         if show_drafted:
-            columns_to_display.insert(0, "Drafted")
+            columns_to_display.insert(0, "DraftPos")
         
         st.dataframe(
             filtered_pitchers[columns_to_display]
@@ -336,9 +340,13 @@ with tab2:
                     format="%.1f"  # Force 1 decimal place
                 )
                 for col in columns_to_display
-                if "WAR" in col and col not in ["NameASCII", "Team", "Drafted", "FangraphsURL"]
+                if "WAR" in col and col not in ["NameASCII", "Team", "DraftPos", "FangraphsURL"]
             } | ({
-                "Drafted": st.column_config.CheckboxColumn("Drafted")
+                "DraftPos": st.column_config.NumberColumn(
+                    "Draft #",
+                    format="%d",
+                    default=""  # Show empty string instead of None
+                )
             } if show_drafted else {}) | {
                 "FangraphsURL": st.column_config.LinkColumn(
                     "Fangraphs",
@@ -374,7 +382,7 @@ with tab3:
         # Columns to display for relievers
         columns_to_display = ["NameASCII", "Team", "Age", "WAR", "IP", "ERA", "FIP", "FangraphsURL"]  # Swapped IP and Age
         if show_drafted:
-            columns_to_display.insert(0, "Drafted")
+            columns_to_display.insert(0, "DraftPos")
         
         st.dataframe(
             filtered_relievers[columns_to_display]
@@ -386,9 +394,13 @@ with tab3:
                     format="%.1f"  # Force 1 decimal place
                 )
                 for col in columns_to_display
-                if "WAR" in col and col not in ["NameASCII", "Team", "Drafted", "FangraphsURL"]
+                if "WAR" in col and col not in ["NameASCII", "Team", "DraftPos", "FangraphsURL"]
             } | ({
-                "Drafted": st.column_config.CheckboxColumn("Drafted")
+                "DraftPos": st.column_config.NumberColumn(
+                    "Draft #",
+                    format="%d",
+                    default=""  # Show empty string instead of None
+                )
             } if show_drafted else {}) | {
                 "FangraphsURL": st.column_config.LinkColumn(
                     "Fangraphs",
@@ -418,7 +430,7 @@ with tab4:
     # Define columns to display
     columns_to_display = ["Rank", "Name", "Team", "Position"]
     if show_drafted:
-        columns_to_display.insert(0, "Drafted")
+        columns_to_display.insert(0, "DraftPos")
     
     st.dataframe(
         filtered_ba[columns_to_display]
@@ -430,7 +442,11 @@ with tab4:
                 format="%d"  # No decimal places for rank
             )
         } | ({
-            "Drafted": st.column_config.CheckboxColumn("Drafted")
+            "DraftPos": st.column_config.NumberColumn(
+                "Draft #",
+                format="%d",
+                default=""  # Show empty string instead of None
+            )
         } if show_drafted else {}),
         height=500,
         use_container_width=True
