@@ -5,7 +5,7 @@ import pandas as pd
 st.set_page_config(layout="wide")
 
 # Title and description
-st.title("Franchise Draft")
+st.title("Franchise Draft - Beetie Board")
 st.write("Career WAR projections for the best players available")
 
 # Add small toggle at the top
@@ -193,13 +193,12 @@ def optimistic_aging_curve_pitcher(row):
 # Modify add_projections to handle both hitters and pitchers
 def add_projections(df, is_pitcher=False):
     if is_pitcher:
-        df["ConservativeProjectedWAR"] = df.apply(conservative_aging_curve_pitcher, axis=1)
-        df["StandardProjectedWAR"] = df.apply(standard_aging_curve_pitcher, axis=1)
-        df["OptimisticProjectedWAR"] = df.apply(optimistic_aging_curve_pitcher, axis=1)
+        df["ProjectedCareerWAR"] = df.apply(standard_aging_curve_pitcher, axis=1).round(1)
     else:
-        df["ConservativeProjectedWAR"] = df.apply(conservative_aging_curve, axis=1)
-        df["StandardProjectedWAR"] = df.apply(standard_aging_curve, axis=1)
-        df["OptimisticProjectedWAR"] = df.apply(optimistic_aging_curve, axis=1)
+        df["ProjectedCareerWAR"] = df.apply(standard_aging_curve, axis=1).round(1)
+    
+    # Round the WAR column as well
+    df["WAR"] = df["WAR"].round(1)
     return df
 
 # Read the drafted players CSV
@@ -313,12 +312,10 @@ with tab1:
         # Add Fangraphs URL column
         filtered_hitters["FangraphsURL"] = filtered_hitters["PlayerId"].apply(create_fangraphs_url)
         
-        # Only include Drafted column if showing drafted players
+        # Hitters tab columns
         columns_to_display = [
             "NameASCII", "Position", "Team", "WAR", "Age",
-            "ConservativeProjectedWAR",
-            "StandardProjectedWAR", 
-            "OptimisticProjectedWAR",
+            "ProjectedCareerWAR",
             "FangraphsURL"
         ]
         if show_drafted:
@@ -326,21 +323,28 @@ with tab1:
         
         st.dataframe(
             filtered_hitters[columns_to_display]
-                .sort_values("StandardProjectedWAR", ascending=False),
+                .sort_values("ProjectedCareerWAR", ascending=False),
             hide_index=True,
             column_config={
-                col: st.column_config.NumberColumn(col)
+                col: st.column_config.NumberColumn(
+                    col,
+                    format="%.1f"  # Force 1 decimal place
+                )
                 for col in columns_to_display
-                if col not in ["NameASCII", "Team", "Position", "Drafted", "FangraphsURL"]
+                if "WAR" in col and col not in ["NameASCII", "Team", "Position", "Drafted", "FangraphsURL"]
             } | ({
                 "Drafted": st.column_config.CheckboxColumn("Drafted")
             } if show_drafted else {}) | {
                 "FangraphsURL": st.column_config.LinkColumn(
                     "Fangraphs",
                     display_text="Stats"
+                ),
+                "WAR": st.column_config.NumberColumn(
+                    "ZiPS WAR",
+                    format="%.1f"
                 )
             },
-            height=800,
+            height=500,
             use_container_width=True
         )
     else:
@@ -361,12 +365,10 @@ with tab2:
         # Add Fangraphs URL column
         filtered_pitchers["FangraphsURL"] = filtered_pitchers["PlayerId"].apply(create_fangraphs_url)
         
-        # Only include Drafted column if showing drafted players
+        # Pitchers tab columns
         columns_to_display = [
             "NameASCII", "Team", "IP", "WAR", "Age",
-            "ConservativeProjectedWAR",
-            "StandardProjectedWAR", 
-            "OptimisticProjectedWAR",
+            "ProjectedCareerWAR",
             "FangraphsURL"
         ]
         if show_drafted:
@@ -374,21 +376,28 @@ with tab2:
         
         st.dataframe(
             filtered_pitchers[columns_to_display]
-                .sort_values("StandardProjectedWAR", ascending=False),
+                .sort_values("ProjectedCareerWAR", ascending=False),
             hide_index=True,
             column_config={
-                col: st.column_config.NumberColumn(col)
+                col: st.column_config.NumberColumn(
+                    col,
+                    format="%.1f"  # Force 1 decimal place
+                )
                 for col in columns_to_display
-                if col not in ["NameASCII", "Team", "Drafted", "FangraphsURL"]
+                if "WAR" in col and col not in ["NameASCII", "Team", "Drafted", "FangraphsURL"]
             } | ({
                 "Drafted": st.column_config.CheckboxColumn("Drafted")
             } if show_drafted else {}) | {
                 "FangraphsURL": st.column_config.LinkColumn(
                     "Fangraphs",
                     display_text="Stats"
+                ),
+                "WAR": st.column_config.NumberColumn(
+                    "ZiPS WAR",
+                    format="%.1f"
                 )
             },
-            height=800,
+            height=500,
             use_container_width=True
         )
     else:
@@ -399,9 +408,9 @@ with tab3:
     st.subheader("Relievers")
     
     # Ensure the needed columns exist
-    if all(col in pitchers_df.columns for col in ["G", "GS", "IP", "ERA", "FIP"]):
+    if all(col in pitchers_df.columns for col in ["G", "GS", "IP", "ERA", "FIP", "WAR"]):
         # Create a copy of the pitchers dataframe for relievers
-        relievers_df = pitchers_df[pitchers_df["G"] > 2 * pitchers_df["GS"]].copy()
+        relievers_df = pitchers_df[pitchers_df["G"] > 5 * pitchers_df["GS"]].copy()
         relievers_df = mark_drafted_column(relievers_df)  # Add Drafted column
         
         # Apply drafted players filter
@@ -411,28 +420,35 @@ with tab3:
         filtered_relievers["FangraphsURL"] = filtered_relievers["PlayerId"].apply(create_fangraphs_url)
         
         # Columns to display for relievers
-        columns_to_display = ["NameASCII", "Team", "IP", "ERA", "FIP", "FangraphsURL"]
+        columns_to_display = ["NameASCII", "Team", "Age", "WAR", "IP", "ERA", "FIP", "FangraphsURL"]  # Swapped IP and Age
         if show_drafted:
             columns_to_display.insert(0, "Drafted")
         
         st.dataframe(
             filtered_relievers[columns_to_display]
-                .sort_values("FIP", ascending=True),  # Sort by FIP (lower is better)
+                .sort_values("WAR", ascending=False),  # Sort by WAR (higher is better)
             hide_index=True,
             column_config={
-                col: st.column_config.NumberColumn(col)
+                col: st.column_config.NumberColumn(
+                    col,
+                    format="%.1f"  # Force 1 decimal place
+                )
                 for col in columns_to_display
-                if col not in ["NameASCII", "Team", "Drafted", "FangraphsURL"]
+                if "WAR" in col and col not in ["NameASCII", "Team", "Drafted", "FangraphsURL"]
             } | ({
                 "Drafted": st.column_config.CheckboxColumn("Drafted")
             } if show_drafted else {}) | {
                 "FangraphsURL": st.column_config.LinkColumn(
                     "Fangraphs",
                     display_text="Stats"
+                ),
+                "WAR": st.column_config.NumberColumn(
+                    "ZiPS WAR",
+                    format="%.1f"
                 )
             },
-            height=800,
+            height=500,
             use_container_width=True
         )
     else:
-        st.warning("Make sure pitchers CSV includes 'G', 'GS', 'IP', 'ERA', and 'FIP' columns.")
+        st.warning("Make sure pitchers CSV includes 'G', 'GS', 'IP', 'ERA', 'FIP', and 'WAR' columns.")
