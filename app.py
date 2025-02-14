@@ -13,9 +13,7 @@ st.set_page_config(
 st.title("Franchise Draft - Beetie Board")
 st.write("Career WAR projections for the best players available")
 
-# Add small toggle at the top
-show_drafted = st.toggle("Show Drafted Players", value=False, 
-                         key="show_drafted_toggle", label_visibility="visible")
+DISCOUNT_RATE = 0.10
 
 # Add custom query box
 with st.expander("Custom Query"):
@@ -27,13 +25,23 @@ with st.expander("Custom Query"):
     """)
     custom_query = st.text_input("Query", key="custom_query", placeholder="Enter query here...")
 
-# Add toggle for projection system at the top
-projection_system = st.radio(
-    "Projection System",
-    ["ZiPS", "Steamer600"],
-    horizontal=True,
-    key="projection_system"
-)
+# Create three columns for the controls
+col1, col2, col3 = st.columns(3)
+
+# Add controls in separate columns
+with col1:
+    show_drafted = st.toggle("Show Drafted Players", value=False, 
+                           key="show_drafted_toggle", label_visibility="visible")
+with col2:
+    use_discount_rate = st.toggle(f"Apply {DISCOUNT_RATE:.0%} Discount Rate", value=False, 
+                                key="use_discount_rate", help=f"Discount future WAR by (1 + {DISCOUNT_RATE:.0%})^years")
+with col3:
+    projection_system = st.radio(
+        "Projection System",
+        ["ZiPS", "Steamer600"],
+        horizontal=True,
+        key="projection_system"
+    )
 
 # Function to apply custom query
 def apply_custom_query(df):
@@ -73,10 +81,13 @@ def interpolate_delta(age_deltas, age):
 
     return (1 - decimal_part) * lower_delta + decimal_part * upper_delta
 
+ # Annual discount rate for future WAR projections
+
 def standard_aging_curve(row):
     age = float(row["Age"])
     current_war = row["WAR"]
     total_future_war = max(0, current_war)  # Only count positive initial WAR
+    years_from_now = 0
 
     # Modified deltas for hitters - expanded age range
     standard_deltas = {
@@ -94,11 +105,16 @@ def standard_aging_curve(row):
         delta = interpolate_delta(standard_deltas, age)
         current_war += delta
         
-        # Only add positive WAR values to total
+        # Only add positive WAR values to total, with optional discount
         if current_war > 0:
-            total_future_war += current_war
+            if use_discount_rate:
+                discount_factor = 1 / ((1 + DISCOUNT_RATE) ** years_from_now)
+                total_future_war += current_war * discount_factor
+            else:
+                total_future_war += current_war
             
         age += 1
+        years_from_now += 1
 
     return total_future_war
 
@@ -106,6 +122,7 @@ def standard_aging_curve_pitcher(row):
     age = float(row["Age"])
     current_war = row["WAR"]
     total_future_war = max(0, current_war)
+    years_from_now = 0
 
     # Modified deltas for pitchers - expanded age range
     standard_deltas = {
@@ -124,9 +141,14 @@ def standard_aging_curve_pitcher(row):
         current_war += delta
         
         if current_war > 0:
-            total_future_war += current_war
+            if use_discount_rate:
+                discount_factor = 1 / ((1 + DISCOUNT_RATE) ** years_from_now)
+                total_future_war += current_war * discount_factor
+            else:
+                total_future_war += current_war
             
         age += 1
+        years_from_now += 1
 
     return total_future_war
 
@@ -134,6 +156,7 @@ def flat_aging_curve(row):
     age = float(row["Age"])
     current_war = row["WAR"]
     total_future_war = max(0, current_war)
+    years_from_now = 0
 
     # Flattened deltas for hitters - expanded age range
     flat_deltas = {
@@ -152,9 +175,14 @@ def flat_aging_curve(row):
         current_war += delta
         
         if current_war > 0:
-            total_future_war += current_war
+            if use_discount_rate:
+                discount_factor = 1 / ((1 + DISCOUNT_RATE) ** years_from_now)
+                total_future_war += current_war * discount_factor
+            else:
+                total_future_war += current_war
             
         age += 1
+        years_from_now += 1
 
     return total_future_war
 
@@ -162,6 +190,7 @@ def flat_aging_curve_pitcher(row):
     age = float(row["Age"])
     current_war = row["WAR"]
     total_future_war = max(0, current_war)
+    years_from_now = 0
 
     # Flattened deltas for pitchers - expanded age range
     flat_deltas = {
@@ -180,9 +209,14 @@ def flat_aging_curve_pitcher(row):
         current_war += delta
         
         if current_war > 0:
-            total_future_war += current_war
+            if use_discount_rate:
+                discount_factor = 1 / ((1 + DISCOUNT_RATE) ** years_from_now)
+                total_future_war += current_war * discount_factor
+            else:
+                total_future_war += current_war
             
         age += 1
+        years_from_now += 1
 
     return total_future_war
 
