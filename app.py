@@ -45,11 +45,7 @@ def filter_drafted(df):
     filtered_df = df if show_drafted else df[df["DraftPos"].isna()]
     return apply_custom_query(filtered_df)
 
-# Read the CSV files
-hitters_df = pd.read_csv('zips-hitters-2025.csv')
-pitchers_df = pd.read_csv('zips-pitchers-2025.csv')
-ba_top_100_df = pd.read_csv('ba_top_100.csv')
-
+# Move all function definitions to the top
 def interpolate_delta(age_deltas, age):
     """
     Interpolates between two ages based on decimal age.
@@ -187,6 +183,31 @@ def add_projections(df, is_pitcher=False):
     
     df["WAR"] = df["WAR"].round(1)
     return df
+
+# Add caching to CSV file reads
+@st.cache_data
+def load_csv_files():
+    """Cache the loading of CSV files to improve startup time"""
+    hitters = pd.read_csv('zips-hitters-2025.csv')
+    pitchers = pd.read_csv('zips-pitchers-2025.csv')
+    ba_top_100 = pd.read_csv('ba_top_100.csv')
+    return hitters, pitchers, ba_top_100
+
+# Cache the projection calculations
+@st.cache_data
+def calculate_projections(df, is_pitcher=False):
+    """Cache the WAR projections calculations"""
+    return add_projections(df, is_pitcher)
+
+# Read the CSV files
+hitters_df, pitchers_df, ba_top_100_df = load_csv_files()
+
+# Calculate projections using cached function
+if "Age" in hitters_df.columns and "WAR" in hitters_df.columns:
+    hitters_df = calculate_projections(hitters_df)
+
+if "Age" in pitchers_df.columns and "WAR" in pitchers_df.columns:
+    pitchers_df = calculate_projections(pitchers_df, is_pitcher=True)
 
 # Read the drafted players CSV
 @st.cache_data
