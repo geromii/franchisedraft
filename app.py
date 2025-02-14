@@ -15,6 +15,7 @@ show_drafted = st.toggle("Show Drafted Players", value=False,
 # Read the CSV files
 hitters_df = pd.read_csv('zips-hitters-2025.csv')
 pitchers_df = pd.read_csv('zips-pitchers-2025.csv')
+ba_top_100_df = pd.read_csv('ba_top_100.csv')
 
 def interpolate_delta(age_deltas, age):
     """
@@ -29,33 +30,6 @@ def interpolate_delta(age_deltas, age):
     upper_delta = age_deltas.get(upper_age, -2.5)
 
     return (1 - decimal_part) * lower_delta + decimal_part * upper_delta
-
-def conservative_aging_curve(row):
-    age = float(row["Age"])
-    current_war = row["WAR"]
-    total_future_war = 0
-
-    # Modified deltas for more gradual decline
-    low_end_deltas = {
-        20: +0.15, 21: +0.15, 22: +0.08, 23: +0.08, 24: +0.08,
-        25: +0.0, 26: +0.0, 27: -0.1, 28: -0.2, 29: -0.3,
-        30: -0.4, 31: -0.5, 32: -0.6, 33: -0.7, 34: -0.8,
-        35: -1.0, 36: -1.2, 37: -1.4, 38: -1.6, 39: -1.8,
-        40: -2.0, 41: -2.2, 42: -2.4
-    }
-
-    # Project until age 42
-    while age < 43:
-        delta = interpolate_delta(low_end_deltas, age)
-        current_war += delta
-        
-        if current_war <= 0:
-            break
-            
-        total_future_war += current_war
-        age += 1
-
-    return total_future_war
 
 def standard_aging_curve(row):
     age = float(row["Age"])
@@ -74,59 +48,6 @@ def standard_aging_curve(row):
     # Project until age 42
     while age < 43:
         delta = interpolate_delta(standard_deltas, age)
-        current_war += delta
-        
-        if current_war <= 0:
-            break
-            
-        total_future_war += current_war
-        age += 1
-
-    return total_future_war
-
-def optimistic_aging_curve(row):
-    age = float(row["Age"])
-    current_war = row["WAR"]
-    total_future_war = 0
-
-    # Modified deltas for more gradual changes
-    high_end_deltas = {
-        20: +0.4, 21: +0.3, 22: +0.3, 23: +0.25, 24: +0.25,
-        25: +0.15, 26: +0.08, 27: +0.08, 28: +0.0, 29: +0.0,
-        30: -0.1, 31: -0.2, 32: -0.3, 33: -0.4, 34: -0.5,
-        35: -0.6, 36: -0.8, 37: -1.0, 38: -1.2, 39: -1.4,
-        40: -1.6, 41: -1.8, 42: -2.0
-    }
-
-    # Project until age 42
-    while age < 43:
-        delta = interpolate_delta(high_end_deltas, age)
-        current_war += delta
-        
-        if current_war <= 0:
-            break
-            
-        total_future_war += current_war
-        age += 1
-
-    return total_future_war
-
-def conservative_aging_curve_pitcher(row):
-    age = float(row["Age"])
-    current_war = row["WAR"]
-    total_future_war = 0
-
-    low_end_deltas = {
-        20: +0.15, 21: +0.15, 22: +0.15, 23: +0.08, 24: +0.08,
-        25: +0.0, 26: +0.0, 27: -0.1, 28: -0.1, 29: -0.2,
-        30: -0.2, 31: -0.3, 32: -0.4, 33: -0.5, 34: -0.6,
-        35: -0.7, 36: -0.8, 37: -0.9, 38: -1.0, 39: -1.1,
-        40: -1.2, 41: -1.3, 42: -1.4
-    }
-
-    # Project until age 42
-    while age < 43:
-        delta = interpolate_delta(low_end_deltas, age)
         current_war += delta
         
         if current_war <= 0:
@@ -164,22 +85,23 @@ def standard_aging_curve_pitcher(row):
 
     return total_future_war
 
-def optimistic_aging_curve_pitcher(row):
+def flat_aging_curve(row):
     age = float(row["Age"])
     current_war = row["WAR"]
     total_future_war = 0
 
-    high_end_deltas = {
-        20: +0.3, 21: +0.25, 22: +0.25, 23: +0.15, 24: +0.15,
-        25: +0.08, 26: +0.08, 27: +0.0, 28: +0.0, 29: -0.1,
-        30: -0.1, 31: -0.2, 32: -0.2, 33: -0.3, 34: -0.3,
-        35: -0.4, 36: -0.5, 37: -0.6, 38: -0.7, 39: -0.8,
-        40: -0.9, 41: -1.0, 42: -1.1
+    # Flattened deltas for hitters - much more gradual changes
+    flat_deltas = {
+        20: +0.05, 21: +0.05, 22: +0.02, 23: +0.00, 24: -0.02,
+        25: -0.05, 26: -0.07, 27: -0.1, 28: -0.15, 29: -0.18,
+        30: -0.22, 31: -0.25, 32: -0.28, 33: -0.32, 34: -0.35,
+        35: -0.40, 36: -0.45, 37: -0.50, 38: -0.55, 39: -0.60,
+        40: -0.70, 41: -0.80, 42: -0.90
     }
 
     # Project until age 42
     while age < 43:
-        delta = interpolate_delta(high_end_deltas, age)
+        delta = interpolate_delta(flat_deltas, age)
         current_war += delta
         
         if current_war <= 0:
@@ -190,14 +112,42 @@ def optimistic_aging_curve_pitcher(row):
 
     return total_future_war
 
-# Modify add_projections to handle both hitters and pitchers
+def flat_aging_curve_pitcher(row):
+    age = float(row["Age"])
+    current_war = row["WAR"]
+    total_future_war = 0
+
+    # Flattened deltas for pitchers - even more gradual changes
+    flat_deltas = {
+        20: +0.02, 21: +0.02, 22: +0.00, 23: -0.02, 24: -0.02,
+        25: -0.05, 26: -0.07, 27: -0.1, 28: -0.15, 29: -0.15,
+        30: -0.18, 31: -0.18, 32: -0.22, 33: -0.22, 34: -0.25,
+        35: -0.28, 36: -0.32, 37: -0.35, 38: -0.40, 39: -0.45,
+        40: -0.50, 41: -0.55, 42: -0.60
+    }
+
+    # Project until age 42
+    while age < 43:
+        delta = interpolate_delta(flat_deltas, age)
+        current_war += delta
+        
+        if current_war <= 0:
+            break
+            
+        total_future_war += current_war
+        age += 1
+
+    return total_future_war
+
+# Modify add_projections to calculate both curves
 def add_projections(df, is_pitcher=False):
     if is_pitcher:
         df["ProjectedCareerWAR"] = df.apply(standard_aging_curve_pitcher, axis=1).round(1)
+        df["FlatProjectedCareerWAR"] = df.apply(flat_aging_curve_pitcher, axis=1).round(1)
     else:
         df["ProjectedCareerWAR"] = df.apply(standard_aging_curve, axis=1).round(1)
+        df["FlatProjectedCareerWAR"] = df.apply(flat_aging_curve, axis=1).round(1)
     
-    # Round the WAR column as well
     df["WAR"] = df["WAR"].round(1)
     return df
 
@@ -225,7 +175,9 @@ def mark_drafted_column(df):
     Adds a 'Drafted' boolean column indicating
     if the player's name is in drafted_players.
     """
-    df["Drafted"] = df["NameASCII"].isin(drafted_players.keys())
+    # Use 'Name' column if 'NameASCII' is not present
+    name_column = "NameASCII" if "NameASCII" in df.columns else "Name"
+    df["Drafted"] = df[name_column].isin(drafted_players.keys())
     return df
 
 # Filter function
@@ -260,7 +212,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Create tabs
-tab1, tab2, tab3 = st.tabs(["Hitters", "Pitchers", "Relievers"])
+tab1, tab2, tab3, tab4 = st.tabs(["Hitters", "Pitchers", "Relievers", "BA Top 100"])
 
 # Function to create Fangraphs URL
 def create_fangraphs_url(player_id):
@@ -315,7 +267,7 @@ with tab1:
         # Hitters tab columns
         columns_to_display = [
             "NameASCII", "Position", "Team", "WAR", "Age",
-            "ProjectedCareerWAR",
+            "ProjectedCareerWAR", "FlatProjectedCareerWAR",
             "FangraphsURL"
         ]
         if show_drafted:
@@ -368,7 +320,7 @@ with tab2:
         # Pitchers tab columns
         columns_to_display = [
             "NameASCII", "Team", "IP", "WAR", "Age",
-            "ProjectedCareerWAR",
+            "ProjectedCareerWAR", "FlatProjectedCareerWAR",
             "FangraphsURL"
         ]
         if show_drafted:
@@ -452,3 +404,34 @@ with tab3:
         )
     else:
         st.warning("Make sure pitchers CSV includes 'G', 'GS', 'IP', 'ERA', 'FIP', and 'WAR' columns.")
+
+# BA Top 100 tab
+with tab4:
+    st.subheader("Baseball America Top 100")
+    
+    # Mark drafted players in BA Top 100
+    ba_top_100_df = mark_drafted_column(ba_top_100_df)
+    
+    # Apply drafted players filter
+    filtered_ba = filter_drafted(ba_top_100_df)
+    
+    # Define columns to display
+    columns_to_display = ["Rank", "Name", "Team", "Position"]
+    if show_drafted:
+        columns_to_display.insert(0, "Drafted")
+    
+    st.dataframe(
+        filtered_ba[columns_to_display]
+            .sort_values("Rank"),
+        hide_index=True,
+        column_config={
+            "Rank": st.column_config.NumberColumn(
+                "Rank",
+                format="%d"  # No decimal places for rank
+            )
+        } | ({
+            "Drafted": st.column_config.CheckboxColumn("Drafted")
+        } if show_drafted else {}),
+        height=500,
+        use_container_width=True
+    )
