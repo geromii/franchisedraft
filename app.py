@@ -6,7 +6,7 @@ import pandas as pd
 st.set_page_config(
     page_title="Franchise Draft - Beetie Board",
     page_icon=":baseball:",
-    layout="wide"
+    layout="wide",
 )
 
 # Title and description
@@ -26,6 +26,14 @@ with st.expander("Custom Query"):
     - `Team == "LAD"`
     """)
     custom_query = st.text_input("Query", key="custom_query", placeholder="Enter query here...")
+
+# Add toggle for projection system at the top
+projection_system = st.radio(
+    "Projection System",
+    ["ZiPS", "Steamer600"],
+    horizontal=True,
+    key="projection_system"
+)
 
 # Function to apply custom query
 def apply_custom_query(df):
@@ -68,27 +76,28 @@ def interpolate_delta(age_deltas, age):
 def standard_aging_curve(row):
     age = float(row["Age"])
     current_war = row["WAR"]
-    # Include current WAR in total
-    total_future_war = current_war
+    total_future_war = max(0, current_war)  # Only count positive initial WAR
 
-    # Modified deltas for hitters - more gradual changes
+    # Modified deltas for hitters - expanded age range
     standard_deltas = {
-        20: +0.25, 21: +0.20, 22: +0.20, 23: +0.10, 24: +0.10,
+        16: +0.35, 17: +0.30, 18: +0.30, 19: +0.25, 20: +0.25, 
+        21: +0.20, 22: +0.20, 23: +0.10, 24: +0.10,
         25: +0.03, 26: +0.03, 27: -0.05, 28: -0.15, 29: -0.25,
         30: -0.35, 31: -0.45, 32: -0.55, 33: -0.65, 34: -0.75,
         35: -0.85, 36: -0.95, 37: -1.15, 38: -1.35, 39: -1.55,
-        40: -1.75, 41: -1.95, 42: -2.15
+        40: -1.75, 41: -1.95, 42: -2.15, 43: -2.35, 44: -2.55,
+        45: -2.8
     }
 
-    # Project until age 42
-    while age < 43:
+    # Project until age 45
+    while age < 46:
         delta = interpolate_delta(standard_deltas, age)
         current_war += delta
         
-        if current_war <= 0:
-            break
+        # Only add positive WAR values to total
+        if current_war > 0:
+            total_future_war += current_war
             
-        total_future_war += current_war
         age += 1
 
     return total_future_war
@@ -96,27 +105,27 @@ def standard_aging_curve(row):
 def standard_aging_curve_pitcher(row):
     age = float(row["Age"])
     current_war = row["WAR"]
-    # Include current WAR in total
-    total_future_war = current_war
+    total_future_war = max(0, current_war)
 
-    # Modified deltas for pitchers - even slower decline
+    # Modified deltas for pitchers - expanded age range
     standard_deltas = {
-        20: +0.20, 21: +0.20, 22: +0.10, 23: +0.10, 24: +0.10,
+        16: +0.30, 17: +0.25, 18: +0.25, 19: +0.20, 20: +0.20, 
+        21: +0.20, 22: +0.10, 23: +0.10, 24: +0.10,
         25: +0.03, 26: +0.03, 27: -0.05, 28: -0.15, 29: -0.15,
         30: -0.25, 31: -0.25, 32: -0.35, 33: -0.35, 34: -0.45,
         35: -0.55, 36: -0.65, 37: -0.75, 38: -0.85, 39: -0.95,
-        40: -1.05, 41: -1.15, 42: -1.25
+        40: -1.05, 41: -1.15, 42: -1.25, 43: -1.35, 44: -1.45,
+        45: -1.55
     }
 
-    # Project until age 42
-    while age < 43:
+    # Project until age 45
+    while age < 46:
         delta = interpolate_delta(standard_deltas, age)
         current_war += delta
         
-        if current_war <= 0:
-            break
+        if current_war > 0:
+            total_future_war += current_war
             
-        total_future_war += current_war
         age += 1
 
     return total_future_war
@@ -124,27 +133,27 @@ def standard_aging_curve_pitcher(row):
 def flat_aging_curve(row):
     age = float(row["Age"])
     current_war = row["WAR"]
-    # Include current WAR in total
-    total_future_war = current_war
+    total_future_war = max(0, current_war)
 
-    # Flattened deltas for hitters - slightly steeper changes
+    # Flattened deltas for hitters - expanded age range
     flat_deltas = {
-        20: +0.01, 21: +0.01, 22: -0.03, 23: -0.06, 24: -0.09,
+        16: +0.05, 17: +0.03, 18: +0.02, 19: +0.01, 20: +0.01,
+        21: +0.01, 22: -0.03, 23: -0.06, 24: -0.09,
         25: -0.13, 26: -0.17, 27: -0.21, 28: -0.25, 29: -0.30,
         30: -0.35, 31: -0.40, 32: -0.45, 33: -0.50, 34: -0.55,
         35: -0.60, 36: -0.70, 37: -0.80, 38: -0.90, 39: -1.00,
-        40: -1.10, 41: -1.20, 42: -1.30
+        40: -1.10, 41: -1.20, 42: -1.30, 43: -1.40, 44: -1.50,
+        45: -1.60
     }
 
-    # Project until age 42
-    while age < 43:
+    # Project until age 45
+    while age < 46:
         delta = interpolate_delta(flat_deltas, age)
         current_war += delta
         
-        if current_war <= 0:
-            break
+        if current_war > 0:
+            total_future_war += current_war
             
-        total_future_war += current_war
         age += 1
 
     return total_future_war
@@ -152,27 +161,27 @@ def flat_aging_curve(row):
 def flat_aging_curve_pitcher(row):
     age = float(row["Age"])
     current_war = row["WAR"]
-    # Include current WAR in total
-    total_future_war = current_war
+    total_future_war = max(0, current_war)
 
-    # Flattened deltas for pitchers - slightly steeper changes
+    # Flattened deltas for pitchers - expanded age range
     flat_deltas = {
-        20: -0.02, 21: -0.02, 22: -0.05, 23: -0.08, 24: -0.08,
+        16: +0.02, 17: +0.01, 18: +0.00, 19: -0.01, 20: -0.02,
+        21: -0.02, 22: -0.05, 23: -0.08, 24: -0.08,
         25: -0.11, 26: -0.14, 27: -0.17, 28: -0.22, 29: -0.22,
         30: -0.25, 31: -0.25, 32: -0.30, 33: -0.30, 34: -0.33,
         35: -0.37, 36: -0.41, 37: -0.45, 38: -0.50, 39: -0.55,
-        40: -0.60, 41: -0.65, 42: -0.70
+        40: -0.60, 41: -0.65, 42: -0.70, 43: -0.75, 44: -0.80,
+        45: -0.85
     }
 
-    # Project until age 42
-    while age < 43:
+    # Project until age 45
+    while age < 46:
         delta = interpolate_delta(flat_deltas, age)
         current_war += delta
         
-        if current_war <= 0:
-            break
+        if current_war > 0:
+            total_future_war += current_war
             
-        total_future_war += current_war
         age += 1
 
     return total_future_war
@@ -189,33 +198,25 @@ def add_projections(df, is_pitcher=False):
     df["WAR"] = df["WAR"].round(1)
     return df
 
-# Add caching to CSV file reads
-@st.cache_data
+# Cache the data loading with TTL of 1 day (in seconds)
+@st.cache_data(ttl=24*3600)  # 24 hours * 3600 seconds
 def load_csv_files():
     """Cache the loading of CSV files to improve startup time"""
-    hitters = pd.read_csv('zips-hitters-2025.csv')
-    pitchers = pd.read_csv('zips-pitchers-2025.csv')
+    zips_hitters = pd.read_csv('zips-hitters-2025.csv')
+    zips_pitchers = pd.read_csv('zips-pitchers-2025.csv')
+    steamer_hitters = pd.read_csv('steamer600-hitters-2025.csv')
+    steamer_pitchers = pd.read_csv('steamer600-pitchers-2025.csv')
     ba_top_100 = pd.read_csv('ba_top_100.csv')
-    return hitters, pitchers, ba_top_100
+    return zips_hitters, zips_pitchers, steamer_hitters, steamer_pitchers, ba_top_100
 
-# Cache the projection calculations
-@st.cache_data
+# Cache the projection calculations with TTL of 1 day
+@st.cache_data(ttl=24*3600)  # 24 hours * 3600 seconds
 def calculate_projections(df, is_pitcher=False):
     """Cache the WAR projections calculations"""
     return add_projections(df, is_pitcher)
 
-# Read the CSV files
-hitters_df, pitchers_df, ba_top_100_df = load_csv_files()
-
-# Calculate projections using cached function
-if "Age" in hitters_df.columns and "WAR" in hitters_df.columns:
-    hitters_df = calculate_projections(hitters_df)
-
-if "Age" in pitchers_df.columns and "WAR" in pitchers_df.columns:
-    pitchers_df = calculate_projections(pitchers_df, is_pitcher=True)
-
-# Read the drafted players CSV
-@st.cache_data
+# Cache the drafted players with TTL of 1 day
+@st.cache_data(ttl=24*3600)  # 24 hours * 3600 seconds
 def load_drafted_players():
     df = pd.read_csv(
         'https://docs.google.com/spreadsheets/d/'
@@ -229,6 +230,20 @@ def load_drafted_players():
             # idx + 1 represents draft position (1-based indexing)
             drafted_dict[row['Player']] = idx + 1
     return drafted_dict
+
+# Read the CSV files
+zips_hitters_df, zips_pitchers_df, steamer_hitters_df, steamer_pitchers_df, ba_top_100_df = load_csv_files()
+
+# Select appropriate dataframe based on projection system
+hitters_df = steamer_hitters_df if projection_system == "Steamer600" else zips_hitters_df
+pitchers_df = steamer_pitchers_df if projection_system == "Steamer600" else zips_pitchers_df
+
+# Calculate projections using cached function
+if "Age" in hitters_df.columns and "WAR" in hitters_df.columns:
+    hitters_df = calculate_projections(hitters_df)
+
+if "Age" in pitchers_df.columns and "WAR" in pitchers_df.columns:
+    pitchers_df = calculate_projections(pitchers_df, is_pitcher=True)
 
 # Load drafted players
 drafted_players = load_drafted_players()
@@ -331,7 +346,7 @@ with tab1:
             column_config={
                 col: st.column_config.NumberColumn(
                     col,
-                    format="%.1f"  # Force 1 decimal place
+                    format="%.1f"
                 )
                 for col in columns_to_display
                 if "WAR" in col and col not in ["NameASCII", "Team", "Position", "DraftPos", "FangraphsURL"]
@@ -339,7 +354,7 @@ with tab1:
                 "DraftPos": st.column_config.NumberColumn(
                     "Drafted",
                     format="%d",
-                    default=""  # Show empty string instead of None
+                    default=""
                 )
             } if show_drafted else {}) | {
                 "FangraphsURL": st.column_config.LinkColumn(
@@ -347,7 +362,7 @@ with tab1:
                     display_text="Stats"
                 ),
                 "WAR": st.column_config.NumberColumn(
-                    "ZiPS WAR",
+                    f"{projection_system} WAR",  # Update column header
                     format="%.1f"
                 )
             },
@@ -388,7 +403,7 @@ with tab2:
             column_config={
                 col: st.column_config.NumberColumn(
                     col,
-                    format="%.1f"  # Force 1 decimal place
+                    format="%.1f"
                 )
                 for col in columns_to_display
                 if "WAR" in col and col not in ["NameASCII", "Team", "DraftPos", "FangraphsURL"]
@@ -396,7 +411,7 @@ with tab2:
                 "DraftPos": st.column_config.NumberColumn(
                     "Draft #",
                     format="%d",
-                    default=""  # Show empty string instead of None
+                    default=""
                 )
             } if show_drafted else {}) | {
                 "FangraphsURL": st.column_config.LinkColumn(
@@ -404,7 +419,7 @@ with tab2:
                     display_text="Stats"
                 ),
                 "WAR": st.column_config.NumberColumn(
-                    "ZiPS WAR",
+                    f"{projection_system} WAR",  # Update column header
                     format="%.1f"
                 )
             },
@@ -442,7 +457,7 @@ with tab3:
             column_config={
                 col: st.column_config.NumberColumn(
                     col,
-                    format="%.1f"  # Force 1 decimal place
+                    format="%.1f"
                 )
                 for col in columns_to_display
                 if "WAR" in col and col not in ["NameASCII", "Team", "DraftPos", "FangraphsURL"]
@@ -450,7 +465,7 @@ with tab3:
                 "DraftPos": st.column_config.NumberColumn(
                     "Draft #",
                     format="%d",
-                    default=""  # Show empty string instead of None
+                    default=""
                 )
             } if show_drafted else {}) | {
                 "FangraphsURL": st.column_config.LinkColumn(
@@ -458,7 +473,7 @@ with tab3:
                     display_text="Stats"
                 ),
                 "WAR": st.column_config.NumberColumn(
-                    "ZiPS WAR",
+                    f"{projection_system} WAR",  # Update column header
                     format="%.1f"
                 )
             },
@@ -496,7 +511,7 @@ with tab4:
             "DraftPos": st.column_config.NumberColumn(
                 "Draft #",
                 format="%d",
-                default=""  # Show empty string instead of None
+                default=""
             )
         } if show_drafted else {}),
         height=500,

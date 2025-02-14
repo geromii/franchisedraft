@@ -61,7 +61,7 @@ def process_file(filename):
     print(f"Process completed for {filename}")
 
 def main():
-    files = ['zips-hitters-2025.csv', 'zips-pitchers-2025.csv']
+    files = ['steamer600-hitters-2025.csv', 'steamer600-pitchers-2025.csv']
     for file in files:
         print(f"\nProcessing {file}...")
         process_file(file)
