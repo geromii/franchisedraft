@@ -128,11 +128,11 @@ def flat_aging_curve(row):
 
     # Flattened deltas for hitters - slightly steeper changes
     flat_deltas = {
-        20: +0.01, 21: +0.01, 22: -0.02, 23: -0.05, 24: -0.08,
-        25: -0.11, 26: -0.14, 27: -0.17, 28: -0.22, 29: -0.25,
-        30: -0.30, 31: -0.33, 32: -0.37, 33: -0.41, 34: -0.45,
-        35: -0.50, 36: -0.55, 37: -0.60, 38: -0.65, 39: -0.70,
-        40: -0.80, 41: -0.90, 42: -1.00
+        20: +0.01, 21: +0.01, 22: -0.03, 23: -0.06, 24: -0.09,
+        25: -0.13, 26: -0.17, 27: -0.21, 28: -0.25, 29: -0.30,
+        30: -0.35, 31: -0.40, 32: -0.45, 33: -0.50, 34: -0.55,
+        35: -0.60, 36: -0.70, 37: -0.80, 38: -0.90, 39: -1.00,
+        40: -1.10, 41: -1.20, 42: -1.30
     }
 
     # Project until age 42
@@ -217,8 +217,13 @@ def mark_drafted_column(df):
     df["DraftPos"] = df[name_column].map(drafted_players)
     return df
 
-# Create tabs
-tab1, tab2, tab3, tab4 = st.tabs(["Hitters", "Pitchers", "Relievers", "BA Top 100"])
+# Create tabs with emojis
+tab1, tab2, tab3, tab4 = st.tabs([
+    "🏃 Hitters", 
+    "⚾ Pitchers", 
+    "🎯 Relievers", 
+    "⭐ BA Top 100"
+])
 
 # Function to create Fangraphs URL
 def create_fangraphs_url(player_id):
@@ -257,6 +262,20 @@ with tab1:
             key=lambda x: position_order.index(x) if x in position_order else len(position_order)
         )
         
+        # Add custom CSS for muted styling
+        st.markdown("""
+            <style>
+            div[data-baseweb="select"] span {
+                background-color: #666666 !important;
+                border-color: #d1d5db !important;
+            }
+            div[data-baseweb="tag"] {
+                background-color: #f0f2f6 !important;
+                border-color: #d1d5db !important;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+
         selected_positions = st.multiselect(
             "Filter by Position",
             options=all_positions,
