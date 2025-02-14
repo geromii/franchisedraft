@@ -323,7 +323,7 @@ with tab1:
         
         st.dataframe(
             filtered_hitters[columns_to_display]
-                .sort_values("ProjectedCareerWAR", ascending=False),
+                .sort_values("WAR", ascending=False),
             hide_index=True,
             column_config={
                 col: st.column_config.NumberColumn(
@@ -376,7 +376,7 @@ with tab2:
         
         st.dataframe(
             filtered_pitchers[columns_to_display]
-                .sort_values("ProjectedCareerWAR", ascending=False),
+                .sort_values("WAR", ascending=False),
             hide_index=True,
             column_config={
                 col: st.column_config.NumberColumn(
