@@ -12,6 +12,39 @@ st.write("Career WAR projections for the best players available")
 show_drafted = st.toggle("Show Drafted Players", value=False, 
                          key="show_drafted_toggle", label_visibility="visible")
 
+# Add custom query box
+with st.expander("Custom Query"):
+    st.markdown("""
+    Enter a custom query using Python/Pandas syntax. Examples:
+    - `WAR > 3 and Age < 25`
+    - `Position == "SS" and WAR > 2`
+    - `Team == "LAD"`
+    """)
+    custom_query = st.text_input("Query", key="custom_query", placeholder="Enter query here...")
+
+# Function to apply custom query
+def apply_custom_query(df):
+    """
+    Applies a custom query to the dataframe if one is provided.
+    Returns the filtered dataframe.
+    """
+    if custom_query:
+        try:
+            return df.query(custom_query)
+        except Exception as e:
+            st.error(f"Invalid query: {str(e)}")
+            return df
+    return df
+
+# Modify filter_drafted to include custom query
+def filter_drafted(df):
+    """
+    If 'show_drafted' is False, return only non-drafted players.
+    Also applies any custom query.
+    """
+    filtered_df = df if show_drafted else df[df["DraftPos"].isna()]
+    return apply_custom_query(filtered_df)
+
 # Read the CSV files
 hitters_df = pd.read_csv('zips-hitters-2025.csv')
 pitchers_df = pd.read_csv('zips-pitchers-2025.csv')
@@ -180,37 +213,6 @@ def mark_drafted_column(df):
     df["DraftPos"] = df[name_column].map(drafted_players)
     return df
 
-# Filter function
-def filter_drafted(df):
-    """
-    If 'show_drafted' is False, return only non-drafted players.
-    Otherwise, return all players.
-    """
-    if not show_drafted:
-        return df[df["DraftPos"].isna()]
-    return df
-
-# Add custom CSS for muted multiselect colors
-st.markdown("""
-    <style>
-    /* Muted background for selected items */
-    .stMultiSelect [data-baseweb="tag"] {
-        background-color: #777777 !important;
-        color: #0e1117 !important;
-    }
-    
-    /* Muted hover color for selected items' delete button */
-    .stMultiSelect [data-baseweb="tag"]:hover {
-        background-color: #e6e9ef !important;
-    }
-    
-    /* Muted color for the dropdown items when hovered */
-    .stMultiSelect [role="option"]:hover {
-        background-color: #f0f2f6 !important;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
 # Create tabs
 tab1, tab2, tab3, tab4 = st.tabs(["Hitters", "Pitchers", "Relievers", "BA Top 100"])
 
@@ -266,7 +268,7 @@ with tab1:
         
         # Hitters tab columns
         columns_to_display = [
-            "NameASCII", "Position", "Team", "WAR", "Age",
+            "NameASCII", "Position", "Team", "Age", "WAR",
             "ProjectedCareerWAR", "FlatProjectedCareerWAR",
             "FangraphsURL"
         ]
@@ -323,7 +325,7 @@ with tab2:
         
         # Pitchers tab columns
         columns_to_display = [
-            "NameASCII", "Team", "IP", "WAR", "Age",
+            "NameASCII", "Team", "Age", "WAR", "IP",
             "ProjectedCareerWAR", "FlatProjectedCareerWAR",
             "FangraphsURL"
         ]
@@ -380,7 +382,7 @@ with tab3:
         filtered_relievers["FangraphsURL"] = filtered_relievers["PlayerId"].apply(create_fangraphs_url)
         
         # Columns to display for relievers
-        columns_to_display = ["NameASCII", "Team", "Age", "WAR", "IP", "ERA", "FIP", "FangraphsURL"]  # Swapped IP and Age
+        columns_to_display = ["NameASCII", "Team", "Age", "WAR", "IP", "ERA", "FIP", "FangraphsURL"]  # Already in correct order
         if show_drafted:
             columns_to_display.insert(0, "DraftPos")
         
