@@ -375,7 +375,7 @@ with tab1:
         
         st.dataframe(
             filtered_hitters[columns_to_display]
-                .sort_values("WAR", ascending=False),
+                .sort_values("ProjectedCareerWAR", ascending=False),
             hide_index=True,
             column_config={
                 col: st.column_config.NumberColumn(
@@ -432,7 +432,7 @@ with tab2:
         
         st.dataframe(
             filtered_pitchers[columns_to_display]
-                .sort_values("WAR", ascending=False),
+                .sort_values("ProjectedCareerWAR", ascending=False),
             hide_index=True,
             column_config={
                 col: st.column_config.NumberColumn(
@@ -486,7 +486,7 @@ with tab3:
         
         st.dataframe(
             filtered_relievers[columns_to_display]
-                .sort_values("WAR", ascending=False),  # Sort by WAR (higher is better)
+                .sort_values("ProjectedCareerWAR", ascending=False),  # Changed from WAR to ProjectedCareerWAR
             hide_index=True,
             column_config={
                 col: st.column_config.NumberColumn(
@@ -534,7 +534,7 @@ with tab4:
     
     st.dataframe(
         filtered_ba[columns_to_display]
-            .sort_values("Rank"),
+            .sort_values("ProjectedCareerWAR", ascending=False),
         hide_index=True,
         column_config={
             "Rank": st.column_config.NumberColumn(
