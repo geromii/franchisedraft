@@ -183,7 +183,7 @@ def apply_custom_query(df):
             return df
     return df
 
-@st.cache_data(ttl=24*3600)
+@st.cache_data(ttl=2*3600)
 def load_drafted_players():
     """
     Load the Google Sheet with draft picks. 
