@@ -45,6 +45,15 @@ with col3:
                                key="use_flat_curve", 
                                help="Uses a flattened aging curve, with less growth and less decline.")
 
+# Add position filter
+positions = ["C", "1B", "2B", "3B", "SS", "OF", "DH"]  # Common positions
+selected_positions = st.multiselect(
+    "Filter by Position(s)",
+    options=positions,
+    default=[],
+    help="Select one or more positions to filter the hitters table"
+)
+
 # -------------------------------#
 # 3. HELPER FUNCTIONS
 # -------------------------------#
@@ -397,6 +406,17 @@ tab1, tab2, tab3, tab4 = st.tabs([
 with tab1:
     st.subheader("Hitters - ZiPS, Steamer, & BATX")
     
+    # Filter by selected positions if any are chosen
+    if selected_positions:
+        # Create expanded position list that includes specific OF positions when "OF" is selected
+        expanded_positions = []
+        for pos in selected_positions:
+            if pos == "OF":
+                expanded_positions.extend(["OF", "LF", "CF", "RF"])
+            else:
+                expanded_positions.append(pos)
+        hitters_final = hitters_final[hitters_final["Position"].isin(expanded_positions)]
+    
     # Add FangraphsURL to columns
     columns_to_show = [
         "NameASCII", 
@@ -424,6 +444,7 @@ with tab1:
         hitters_final[columns_to_show].sort_values("SteamerCareer", ascending=False),
         hide_index=True,
         use_container_width=True,
+        height=600,
         column_config={
             "DraftPos": st.column_config.NumberColumn("Drafted", format="%d"),
             "ZiPSWAR":  st.column_config.NumberColumn("ZiPS WAR", format="%.1f"),
@@ -465,6 +486,7 @@ with tab2:
         pitchers_final[columns_to_show].sort_values("SteamerCareer", ascending=False),
         hide_index=True,
         use_container_width=True,
+        height=600,
         column_config={
             "DraftPos": st.column_config.NumberColumn("Drafted", format="%d"),
             "ZiPSWAR":  st.column_config.NumberColumn("ZiPS WAR", format="%.1f"),
@@ -543,6 +565,7 @@ with tab3:
             relievers_df[columns_to_show].sort_values("ZiPS_WAR", ascending=False),
             hide_index=True,
             use_container_width=True,
+            height=600,
             column_config={
                 "DraftPos": st.column_config.NumberColumn("Drafted", format="%d"),
                 "Age": st.column_config.NumberColumn("Age", format="%.1f"),  # Show decimal ages
@@ -583,6 +606,7 @@ with tab4:
         filtered_ba[columns_to_display].sort_values("Rank"),
         hide_index=True,
         use_container_width=True,
+        height=600,
         column_config={
             "DraftPos": st.column_config.NumberColumn("Drafted", format="%d"),
             "Rank": st.column_config.NumberColumn("Rank", format="%d")
