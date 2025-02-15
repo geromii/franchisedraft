@@ -174,6 +174,7 @@ def apply_custom_query(df):
             return df
     return df
 
+@st.cache_data(ttl=24*3600)
 def load_drafted_players():
     """
     Load the Google Sheet with draft picks. 
@@ -298,6 +299,7 @@ def prep_projection_df(
 # 5A. MERGE HITTERS
 # -------------------------------#
 
+@st.cache_data(ttl=24*3600)
 def build_merged_hitters_df(discount=False, flatten=False):
     """
     Merge (ZiPS, Steamer, BATX) hitters on MLBAMID.
@@ -330,6 +332,7 @@ def build_merged_hitters_df(discount=False, flatten=False):
 # 5B. MERGE PITCHERS
 # -------------------------------#
 
+@st.cache_data(ttl=24*3600)
 def build_merged_pitchers_df(discount=False, flatten=False):
     """
     Merge ZiPS and Steamer pitchers on MLBAMID.
