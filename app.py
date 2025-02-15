@@ -45,15 +45,6 @@ with col3:
                                key="use_flat_curve", 
                                help="Uses a flattened aging curve, with less growth and less decline.")
 
-# Add position filter
-positions = ["C", "1B", "2B", "3B", "SS", "OF", "DH"]  # Common positions
-selected_positions = st.multiselect(
-    "Filter by Position(s)",
-    options=positions,
-    default=[],
-    help="Select one or more positions to filter the hitters table"
-)
-
 # -------------------------------#
 # 3. HELPER FUNCTIONS
 # -------------------------------#
@@ -217,6 +208,15 @@ def create_fangraphs_url(player_id):
     if pd.isna(player_id):
         return None
     return f"https://www.fangraphs.com/players/placeholder/{player_id}/stats"
+
+def create_statcast_url(player_id, name, is_pitcher=False):
+    """Creates a Baseball Savant/Statcast URL from a player ID and name"""
+    if pd.isna(player_id):
+        return None
+    # Convert name to lowercase and replace spaces with hyphens
+    name_slug = name.lower().replace(' ', '-') if pd.notna(name) else 'player'
+    stat_type = 'pitching' if is_pitcher else 'hitting'
+    return f"https://baseballsavant.mlb.com/savant-player/{name_slug}-{player_id}?stats=statcast-r-{stat_type}-mlb"
 
 # -------------------------------#
 # 4. LOAD ALL CSV FILES
@@ -406,6 +406,15 @@ tab1, tab2, tab3, tab4 = st.tabs([
 with tab1:
     st.subheader("Hitters - ZiPS, Steamer, & BATX")
     
+    # Add position filter here, at the start of the hitters tab
+    positions = ["C", "1B", "2B", "3B", "SS", "OF", "DH"]  # Common positions
+    selected_positions = st.multiselect(
+        "Filter by Position(s)",
+        options=positions,
+        default=[],
+        help="Select one or more positions to filter the hitters table"
+    )
+    
     # Filter by selected positions if any are chosen
     if selected_positions:
         # Create expanded position list that includes specific OF positions when "OF" is selected
@@ -417,7 +426,7 @@ with tab1:
                 expanded_positions.append(pos)
         hitters_final = hitters_final[hitters_final["Position"].isin(expanded_positions)]
     
-    # Add FangraphsURL to columns
+    # Add FangraphsURL and StatcastURL to columns
     columns_to_show = [
         "NameASCII", 
         "Position", 
@@ -428,10 +437,17 @@ with tab1:
         "ZiPSCareer", 
         "SteamerCareer", 
         "BatXCareer",
-        "FangraphsURL"
+        "FangraphsURL",
+        "StatcastURL"
     ]
     if show_drafted:
         columns_to_show.insert(0, "DraftPos")
+    
+    # Add StatcastURL to columns before displaying
+    hitters_final["StatcastURL"] = hitters_final.apply(
+        lambda x: create_statcast_url(x["MLBAMID"], x["NameASCII"], is_pitcher=False), 
+        axis=1
+    )
     
     # Create FangraphsURL column before displaying
     hitters_final = hitters_final.copy()
@@ -455,7 +471,11 @@ with tab1:
             "BatXCareer":  st.column_config.NumberColumn("BatX Career", format="%.1f"),
             "FangraphsURL": st.column_config.LinkColumn(
                 "Fangraphs",
-                display_text="Stats"
+                display_text="Fangraphs"
+            ),
+            "StatcastURL": st.column_config.LinkColumn(
+                "Statcast",
+                display_text="Statcast"
             ),
         }
     )
@@ -471,10 +491,17 @@ with tab2:
         "SteamerWAR",
         "ZiPSCareer",
         "SteamerCareer",
-        "FangraphsURL"
+        "FangraphsURL",
+        "StatcastURL"
     ]
     if show_drafted:
         columns_to_show.insert(0, "DraftPos")
+    
+    # Add StatcastURL to columns before displaying
+    pitchers_final["StatcastURL"] = pitchers_final.apply(
+        lambda x: create_statcast_url(x["MLBAMID"], x["NameASCII"], is_pitcher=True), 
+        axis=1
+    )
     
     # Create FangraphsURL column before displaying
     pitchers_final = pitchers_final.copy()
@@ -495,7 +522,11 @@ with tab2:
             "SteamerCareer": st.column_config.NumberColumn("Steamer600 Career", format="%.1f"),
             "FangraphsURL": st.column_config.LinkColumn(
                 "Fangraphs",
-                display_text="Stats"
+                display_text="Fangraphs"
+            ),
+            "StatcastURL": st.column_config.LinkColumn(
+                "Statcast",
+                display_text="Statcast"
             ),
         }
     )
@@ -545,6 +576,16 @@ with tab3:
             relievers_df["FangraphsURL"] = None
             st.warning("PlayerId column not found - Fangraphs links unavailable")
 
+        # Add StatcastURL column
+        if "MLBAMID" in relievers_df.columns:
+            relievers_df["StatcastURL"] = relievers_df.apply(
+                lambda x: create_statcast_url(x["MLBAMID"], x["NameASCII"], is_pitcher=True), 
+                axis=1
+            )
+        else:
+            relievers_df["StatcastURL"] = None
+            st.warning("MLBAMID column not found - Statcast links unavailable")
+
         # Columns to display - reordered to group similar stats
         columns_to_show = [
             "NameASCII",
@@ -556,7 +597,8 @@ with tab3:
             "Steamer_FIP",
             "ZiPS_WAR",
             "Steamer_WAR",
-            "FangraphsURL"
+            "FangraphsURL",
+            "StatcastURL"  # Add StatcastURL to columns
         ]
         if show_drafted:
             columns_to_show.insert(0, "DraftPos")
@@ -578,7 +620,11 @@ with tab3:
                 "Steamer_WAR": st.column_config.NumberColumn("WAR (Steamer)", format="%.1f"),
                 "FangraphsURL": st.column_config.LinkColumn(
                     "Fangraphs",
-                    display_text="Stats"
+                    display_text="Fangraphs"
+                ),
+                "StatcastURL": st.column_config.LinkColumn(
+                    "Statcast",
+                    display_text="Statcast"
                 ),
             }
         )
