@@ -38,7 +38,7 @@ with col2:
 with col3:
     projection_system = st.radio(
         "Projection System",
-        ["ZiPS", "Steamer600"],
+        ["ZiPS", "Steamer600", "BATX"],
         horizontal=True,
         key="projection_system"
     )
@@ -240,8 +240,9 @@ def load_csv_files():
     zips_pitchers = pd.read_csv('zips-pitchers-2025.csv')
     steamer_hitters = pd.read_csv('steamer600-hitters-2025.csv')
     steamer_pitchers = pd.read_csv('steamer600-pitchers-2025.csv')
+    batx_hitters = pd.read_csv('batx-hitters-2025.csv')
     ba_top_100 = pd.read_csv('ba_top_100.csv')
-    return zips_hitters, zips_pitchers, steamer_hitters, steamer_pitchers, ba_top_100
+    return zips_hitters, zips_pitchers, steamer_hitters, steamer_pitchers, batx_hitters, ba_top_100
 
 # Cache the projection calculations with TTL of 1 day
 @st.cache_data(ttl=24*3600)  # 24 hours * 3600 seconds
@@ -266,11 +267,18 @@ def load_drafted_players():
     return drafted_dict
 
 # Read the CSV files
-zips_hitters_df, zips_pitchers_df, steamer_hitters_df, steamer_pitchers_df, ba_top_100_df = load_csv_files()
+zips_hitters_df, zips_pitchers_df, steamer_hitters_df, steamer_pitchers_df, batx_hitters_df, ba_top_100_df = load_csv_files()
 
 # Select appropriate dataframe based on projection system
-hitters_df = steamer_hitters_df if projection_system == "Steamer600" else zips_hitters_df
-pitchers_df = steamer_pitchers_df if projection_system == "Steamer600" else zips_pitchers_df
+if projection_system == "Steamer600":
+    hitters_df = steamer_hitters_df
+    pitchers_df = steamer_pitchers_df
+elif projection_system == "BATX":
+    hitters_df = batx_hitters_df
+    pitchers_df = pd.DataFrame()  # Empty DataFrame for pitchers
+else:  # ZiPS
+    hitters_df = zips_hitters_df
+    pitchers_df = zips_pitchers_df
 
 # Calculate projections using cached function
 if "Age" in hitters_df.columns and "WAR" in hitters_df.columns:
@@ -408,114 +416,120 @@ with tab1:
 
 # Pitchers tab
 with tab2:
-    st.subheader("Top Pitchers")
-    
-    # Ensure the needed columns exist
-    if "Age" in pitchers_df.columns and "WAR" in pitchers_df.columns:
-        pitchers_df = add_projections(pitchers_df, is_pitcher=True)
-        pitchers_df = mark_drafted_column(pitchers_df)  # Add Drafted column
-        
-        # Apply drafted players filter
-        filtered_pitchers = filter_drafted(pitchers_df)
-        
-        # Add Fangraphs URL column
-        filtered_pitchers["FangraphsURL"] = filtered_pitchers["PlayerId"].apply(create_fangraphs_url)
-        
-        # Pitchers tab columns
-        columns_to_display = [
-            "NameASCII", "Team", "Age", "WAR", "IP",
-            "ProjectedCareerWAR", "FlatProjectedCareerWAR",
-            "FangraphsURL"
-        ]
-        if show_drafted:
-            columns_to_display.insert(0, "DraftPos")
-        
-        st.dataframe(
-            filtered_pitchers[columns_to_display]
-                .sort_values("ProjectedCareerWAR", ascending=False),
-            hide_index=True,
-            column_config={
-                col: st.column_config.NumberColumn(
-                    col,
-                    format="%.1f"
-                )
-                for col in columns_to_display
-                if "WAR" in col and col not in ["NameASCII", "Team", "DraftPos", "FangraphsURL"]
-            } | ({
-                "DraftPos": st.column_config.NumberColumn(
-                    "Draft #",
-                    format="%d",
-                    default=""
-                )
-            } if show_drafted else {}) | {
-                "FangraphsURL": st.column_config.LinkColumn(
-                    "Fangraphs",
-                    display_text="Stats"
-                ),
-                "WAR": st.column_config.NumberColumn(
-                    f"{projection_system} WAR",  # Update column header
-                    format="%.1f"
-                )
-            },
-            height=500,
-            use_container_width=True
-        )
+    if projection_system == "BATX":
+        st.info("BATX projections are not available for pitchers")
     else:
-        st.warning("Make sure pitchers CSV includes 'Age' and 'WAR' columns.")
+        st.subheader("Top Pitchers")
+        
+        # Ensure the needed columns exist
+        if "Age" in pitchers_df.columns and "WAR" in pitchers_df.columns:
+            pitchers_df = add_projections(pitchers_df, is_pitcher=True)
+            pitchers_df = mark_drafted_column(pitchers_df)  # Add Drafted column
+            
+            # Apply drafted players filter
+            filtered_pitchers = filter_drafted(pitchers_df)
+            
+            # Add Fangraphs URL column
+            filtered_pitchers["FangraphsURL"] = filtered_pitchers["PlayerId"].apply(create_fangraphs_url)
+            
+            # Pitchers tab columns
+            columns_to_display = [
+                "NameASCII", "Team", "Age", "WAR", "IP",
+                "ProjectedCareerWAR", "FlatProjectedCareerWAR",
+                "FangraphsURL"
+            ]
+            if show_drafted:
+                columns_to_display.insert(0, "DraftPos")
+            
+            st.dataframe(
+                filtered_pitchers[columns_to_display]
+                    .sort_values("ProjectedCareerWAR", ascending=False),
+                hide_index=True,
+                column_config={
+                    col: st.column_config.NumberColumn(
+                        col,
+                        format="%.1f"
+                    )
+                    for col in columns_to_display
+                    if "WAR" in col and col not in ["NameASCII", "Team", "DraftPos", "FangraphsURL"]
+                } | ({
+                    "DraftPos": st.column_config.NumberColumn(
+                        "Draft #",
+                        format="%d",
+                        default=""
+                    )
+                } if show_drafted else {}) | {
+                    "FangraphsURL": st.column_config.LinkColumn(
+                        "Fangraphs",
+                        display_text="Stats"
+                    ),
+                    "WAR": st.column_config.NumberColumn(
+                        f"{projection_system} WAR",  # Update column header
+                        format="%.1f"
+                    )
+                },
+                height=500,
+                use_container_width=True
+            )
+        else:
+            st.warning("Make sure pitchers CSV includes 'Age' and 'WAR' columns.")
 
 # Relievers tab
 with tab3:
-    st.subheader("Relievers")
-    
-    # Ensure the needed columns exist
-    if all(col in pitchers_df.columns for col in ["G", "GS", "IP", "ERA", "FIP", "WAR"]):
-        # Create a copy of the pitchers dataframe for relievers
-        relievers_df = pitchers_df[pitchers_df["G"] > 5 * pitchers_df["GS"]].copy()
-        relievers_df = mark_drafted_column(relievers_df)  # Add Drafted column
-        
-        # Apply drafted players filter
-        filtered_relievers = filter_drafted(relievers_df)
-        
-        # Add Fangraphs URL column
-        filtered_relievers["FangraphsURL"] = filtered_relievers["PlayerId"].apply(create_fangraphs_url)
-        
-        # Columns to display for relievers
-        columns_to_display = ["NameASCII", "Team", "Age", "WAR", "IP", "ERA", "FIP", "FangraphsURL"]  # Already in correct order
-        if show_drafted:
-            columns_to_display.insert(0, "DraftPos")
-        
-        st.dataframe(
-            filtered_relievers[columns_to_display]
-                .sort_values("WAR", ascending=False),  # Sort by WAR (higher is better)
-            hide_index=True,
-            column_config={
-                col: st.column_config.NumberColumn(
-                    col,
-                    format="%.1f"
-                )
-                for col in columns_to_display
-                if "WAR" in col and col not in ["NameASCII", "Team", "DraftPos", "FangraphsURL"]
-            } | ({
-                "DraftPos": st.column_config.NumberColumn(
-                    "Draft #",
-                    format="%d",
-                    default=""
-                )
-            } if show_drafted else {}) | {
-                "FangraphsURL": st.column_config.LinkColumn(
-                    "Fangraphs",
-                    display_text="Stats"
-                ),
-                "WAR": st.column_config.NumberColumn(
-                    f"{projection_system} WAR",  # Update column header
-                    format="%.1f"
-                )
-            },
-            height=500,
-            use_container_width=True
-        )
+    if projection_system == "BATX":
+        st.info("BATX projections are not available for relievers")
     else:
-        st.warning("Make sure pitchers CSV includes 'G', 'GS', 'IP', 'ERA', 'FIP', and 'WAR' columns.")
+        st.subheader("Relievers")
+        
+        # Ensure the needed columns exist
+        if all(col in pitchers_df.columns for col in ["G", "GS", "IP", "ERA", "FIP", "WAR"]):
+            # Create a copy of the pitchers dataframe for relievers
+            relievers_df = pitchers_df[pitchers_df["G"] > 5 * pitchers_df["GS"]].copy()
+            relievers_df = mark_drafted_column(relievers_df)  # Add Drafted column
+            
+            # Apply drafted players filter
+            filtered_relievers = filter_drafted(relievers_df)
+            
+            # Add Fangraphs URL column
+            filtered_relievers["FangraphsURL"] = filtered_relievers["PlayerId"].apply(create_fangraphs_url)
+            
+            # Columns to display for relievers
+            columns_to_display = ["NameASCII", "Team", "Age", "WAR", "IP", "ERA", "FIP", "FangraphsURL"]  # Already in correct order
+            if show_drafted:
+                columns_to_display.insert(0, "DraftPos")
+            
+            st.dataframe(
+                filtered_relievers[columns_to_display]
+                    .sort_values("WAR", ascending=False),  # Sort by WAR (higher is better)
+                hide_index=True,
+                column_config={
+                    col: st.column_config.NumberColumn(
+                        col,
+                        format="%.1f"
+                    )
+                    for col in columns_to_display
+                    if "WAR" in col and col not in ["NameASCII", "Team", "DraftPos", "FangraphsURL"]
+                } | ({
+                    "DraftPos": st.column_config.NumberColumn(
+                        "Draft #",
+                        format="%d",
+                        default=""
+                    )
+                } if show_drafted else {}) | {
+                    "FangraphsURL": st.column_config.LinkColumn(
+                        "Fangraphs",
+                        display_text="Stats"
+                    ),
+                    "WAR": st.column_config.NumberColumn(
+                        f"{projection_system} WAR",  # Update column header
+                        format="%.1f"
+                    )
+                },
+                height=500,
+                use_container_width=True
+            )
+        else:
+            st.warning("Make sure pitchers CSV includes 'G', 'GS', 'IP', 'ERA', 'FIP', and 'WAR' columns.")
 
 # BA Top 100 tab
 with tab4:
