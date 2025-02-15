@@ -448,10 +448,10 @@ with tab1:
         column_config={
             "DraftPos": st.column_config.NumberColumn("Drafted", format="%d"),
             "ZiPSWAR":  st.column_config.NumberColumn("ZiPS WAR", format="%.1f"),
-            "SteamerWAR": st.column_config.NumberColumn("Steamer WAR", format="%.1f"),
+            "SteamerWAR": st.column_config.NumberColumn("Steamer600 WAR", format="%.1f"),
             "BatXWAR":  st.column_config.NumberColumn("BatX WAR", format="%.1f"),
             "ZiPSCareer":  st.column_config.NumberColumn("ZiPS Career", format="%.1f"),
-            "SteamerCareer": st.column_config.NumberColumn("Steamer Career", format="%.1f"),
+            "SteamerCareer": st.column_config.NumberColumn("Steamer600 Career", format="%.1f"),
             "BatXCareer":  st.column_config.NumberColumn("BatX Career", format="%.1f"),
             "FangraphsURL": st.column_config.LinkColumn(
                 "Fangraphs",
@@ -490,9 +490,9 @@ with tab2:
         column_config={
             "DraftPos": st.column_config.NumberColumn("Drafted", format="%d"),
             "ZiPSWAR":  st.column_config.NumberColumn("ZiPS WAR", format="%.1f"),
-            "SteamerWAR": st.column_config.NumberColumn("Steamer WAR", format="%.1f"),
+            "SteamerWAR": st.column_config.NumberColumn("Steamer600 WAR", format="%.1f"),
             "ZiPSCareer":  st.column_config.NumberColumn("ZiPS Career", format="%.1f"),
-            "SteamerCareer": st.column_config.NumberColumn("Steamer Career", format="%.1f"),
+            "SteamerCareer": st.column_config.NumberColumn("Steamer600 Career", format="%.1f"),
             "FangraphsURL": st.column_config.LinkColumn(
                 "Fangraphs",
                 display_text="Stats"
