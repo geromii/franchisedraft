@@ -258,28 +258,6 @@ zips_hitters_df, zips_pitchers_df, steamer_hitters_df, steamer_pitchers_df, batx
 # Load drafted players
 drafted_dict = load_drafted_players()  # {playerName -> draftPos}
 
-# Now add the name filter expander here
-with st.expander("Filter by Names"):
-    st.markdown("""
-    Paste a list of names (comma-separated or one per line) to filter the view to just those players.
-    """)
-    name_list_input = st.text_area("Names", key="name_filter", placeholder="Paste names here...")
-    submitted = st.button("Apply Name Filter")
-    
-    # Store the name list in session state when submitted
-    if submitted:
-        st.session_state.name_list = name_list_input
-    elif 'name_list' not in st.session_state:
-        st.session_state.name_list = ""
-
-    # Add drafted players check
-    if st.session_state.name_list:
-        names = [name.strip() for name in st.session_state.name_list.replace('\n', ',').split(',')]
-        names = [name for name in names if name]
-        drafted_names = [name for name in names if name in drafted_dict]
-        if drafted_names:
-            st.write("🎯 Already drafted: " + ", ".join(drafted_names))
-
 # -------------------------------#
 # 5. PREPARE MERGED DATAFRAMES
 # -------------------------------#
@@ -407,7 +385,6 @@ hitters_merged = build_merged_hitters_df(discount=use_discount_rate, flatten=use
 pitchers_merged = build_merged_pitchers_df(discount=use_discount_rate, flatten=use_flat_curve)
 
 # Add a "DraftPos" column by matching the player's *NameASCII* to your drafted_dict
-# (If you have a better unique identifier (MLBAMID -> draftpos), adapt accordingly.)
 def mark_drafted_column(df):
     df = df.copy()
     if "NameASCII" in df.columns:
@@ -418,6 +395,40 @@ def mark_drafted_column(df):
 
 hitters_merged = mark_drafted_column(hitters_merged)
 pitchers_merged = mark_drafted_column(pitchers_merged)
+
+# Now add the name filter expander here
+with st.expander("Filter by Names"):
+    st.markdown("""
+    Paste a list of names (comma-separated or one per line) to filter the view to just those players.
+    """)
+    name_list_input = st.text_area("Names", key="name_filter", placeholder="Paste names here...")
+    submitted = st.button("Apply Name Filter")
+    
+    # Store the name list in session state when submitted
+    if submitted:
+        st.session_state.name_list = name_list_input
+    elif 'name_list' not in st.session_state:
+        st.session_state.name_list = ""
+
+    # Add drafted players check and not found check
+    if st.session_state.name_list:
+        names = [name.strip() for name in st.session_state.name_list.replace('\n', ',').split(',')]
+        names = [name for name in names if name]
+        
+        # Get all unique names from our datasets
+        all_names = set()
+        if 'NameASCII' in hitters_merged.columns:
+            all_names.update(hitters_merged['NameASCII'].dropna())
+        if 'NameASCII' in pitchers_merged.columns:
+            all_names.update(pitchers_merged['NameASCII'].dropna())
+        
+        drafted_names = [name for name in names if name in drafted_dict]
+        not_found_names = [name for name in names if name not in all_names and name]
+        
+        if drafted_names:
+            st.write("🎯 Already drafted: " + ", ".join(drafted_names))
+        if not_found_names:
+            st.write("❓ Not found in data: " + ", ".join(not_found_names))
 
 # Filter drafted or not, based on toggle
 hitters_final = filter_drafted(hitters_merged, show_drafted)
