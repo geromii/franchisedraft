@@ -35,15 +35,6 @@ with st.expander("Custom Query"):
 with st.expander("Filter by Names"):
     st.markdown("""
     Paste a list of names (comma-separated or one per line) to filter the view to just those players.
-    Example:
-    ```
-    Juan Soto, Shohei Ohtani
-    ```
-    or
-    ```
-    Juan Soto
-    Shohei Ohtani
-    ```
     """)
     name_list_input = st.text_area("Names", key="name_filter", placeholder="Paste names here...")
     submitted = st.button("Apply Name Filter")
