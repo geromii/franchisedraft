@@ -31,20 +31,7 @@ with st.expander("Custom Query"):
     """)
     custom_query = st.text_input("Query", key="custom_query", placeholder="Enter query here...")
 
-# Add this right after the custom query expander, before the columns
-with st.expander("Filter by Names"):
-    st.markdown("""
-    Paste a list of names (comma-separated or one per line) to filter the view to just those players.
-    """)
-    name_list_input = st.text_area("Names", key="name_filter", placeholder="Paste names here...")
-    submitted = st.button("Apply Name Filter")
-    
-    # Store the name list in session state when submitted
-    if submitted:
-        st.session_state.name_list = name_list_input
-    elif 'name_list' not in st.session_state:
-        st.session_state.name_list = ""
-
+# Move the columns definition here
 col1, col2, col3 = st.columns(3)
 
 with col1:
@@ -268,7 +255,30 @@ def load_csv_files():
 
 zips_hitters_df, zips_pitchers_df, steamer_hitters_df, steamer_pitchers_df, batx_hitters_df, ba_top_100_df = load_csv_files()
 
+# Load drafted players
 drafted_dict = load_drafted_players()  # {playerName -> draftPos}
+
+# Now add the name filter expander here
+with st.expander("Filter by Names"):
+    st.markdown("""
+    Paste a list of names (comma-separated or one per line) to filter the view to just those players.
+    """)
+    name_list_input = st.text_area("Names", key="name_filter", placeholder="Paste names here...")
+    submitted = st.button("Apply Name Filter")
+    
+    # Store the name list in session state when submitted
+    if submitted:
+        st.session_state.name_list = name_list_input
+    elif 'name_list' not in st.session_state:
+        st.session_state.name_list = ""
+
+    # Add drafted players check
+    if st.session_state.name_list:
+        names = [name.strip() for name in st.session_state.name_list.replace('\n', ',').split(',')]
+        names = [name for name in names if name]
+        drafted_names = [name for name in names if name in drafted_dict]
+        if drafted_names:
+            st.write("🎯 Already drafted: " + ", ".join(drafted_names))
 
 # -------------------------------#
 # 5. PREPARE MERGED DATAFRAMES
@@ -564,7 +574,6 @@ with tab2:
 
 with tab3:
     st.subheader("Relievers")
-    st.write("Showing pitchers with 4× more Games than Games Started in ZiPS projections.")
     
     # Create reliever-specific dataframe from ZiPS data
     if all(col in zips_pitchers_df.columns for col in ["G", "GS"]):
