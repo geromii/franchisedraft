@@ -31,6 +31,29 @@ with st.expander("Custom Query"):
     """)
     custom_query = st.text_input("Query", key="custom_query", placeholder="Enter query here...")
 
+# Add this right after the custom query expander, before the columns
+with st.expander("Filter by Names"):
+    st.markdown("""
+    Paste a list of names (comma-separated or one per line) to filter the view to just those players.
+    Example:
+    ```
+    Juan Soto, Shohei Ohtani
+    ```
+    or
+    ```
+    Juan Soto
+    Shohei Ohtani
+    ```
+    """)
+    name_list_input = st.text_area("Names", key="name_filter", placeholder="Paste names here...")
+    submitted = st.button("Apply Name Filter")
+    
+    # Store the name list in session state when submitted
+    if submitted:
+        st.session_state.name_list = name_list_input
+    elif 'name_list' not in st.session_state:
+        st.session_state.name_list = ""
+
 col1, col2, col3 = st.columns(3)
 
 with col1:
@@ -172,6 +195,17 @@ def apply_custom_query(df):
         except Exception as e:
             st.error(f"Invalid query: {str(e)}")
             return df
+    return df
+
+def filter_by_names(df):
+    """Filters dataframe to only show players whose names are in the provided list."""
+    if st.session_state.name_list:
+        # Split by either commas or newlines
+        names = [name.strip() for name in st.session_state.name_list.replace('\n', ',').split(',')]
+        # Remove empty strings
+        names = [name for name in names if name]
+        if names:
+            return df[df["NameASCII"].isin(names)]
     return df
 
 @st.cache_data(ttl=0.15*3600)
@@ -392,6 +426,24 @@ pitchers_final = filter_drafted(pitchers_merged, show_drafted)
 hitters_final = apply_custom_query(hitters_final)
 pitchers_final = apply_custom_query(pitchers_final)
 
+# Add StatcastURL to columns before displaying
+hitters_final = hitters_final.copy()  # Ensure we have a copy
+hitters_final.loc[:, "StatcastURL"] = hitters_final.apply(
+    lambda x: create_statcast_url(x["MLBAMID"], x["NameASCII"], is_pitcher=False), 
+    axis=1
+)
+
+# Add StatcastURL to columns before displaying
+pitchers_final = pitchers_final.copy()  # Ensure we have a copy
+pitchers_final.loc[:, "StatcastURL"] = pitchers_final.apply(
+    lambda x: create_statcast_url(x["MLBAMID"], x["NameASCII"], is_pitcher=True), 
+    axis=1
+)
+
+# Keep these filter calls before the tabs
+hitters_final = filter_by_names(hitters_final)
+pitchers_final = filter_by_names(pitchers_final)
+
 # -------------------------------#
 # 7. DISPLAY TABS
 # -------------------------------#
@@ -443,12 +495,6 @@ with tab1:
     if show_drafted:
         columns_to_show.insert(0, "DraftPos")
     
-    # Add StatcastURL to columns before displaying
-    hitters_final["StatcastURL"] = hitters_final.apply(
-        lambda x: create_statcast_url(x["MLBAMID"], x["NameASCII"], is_pitcher=False), 
-        axis=1
-    )
-    
     # Create FangraphsURL column before displaying
     hitters_final = hitters_final.copy()
     hitters_final["FangraphsURL"] = hitters_final["PlayerId"].apply(create_fangraphs_url)
@@ -496,12 +542,6 @@ with tab2:
     ]
     if show_drafted:
         columns_to_show.insert(0, "DraftPos")
-    
-    # Add StatcastURL to columns before displaying
-    pitchers_final["StatcastURL"] = pitchers_final.apply(
-        lambda x: create_statcast_url(x["MLBAMID"], x["NameASCII"], is_pitcher=True), 
-        axis=1
-    )
     
     # Create FangraphsURL column before displaying
     pitchers_final = pitchers_final.copy()
@@ -568,6 +608,7 @@ with tab3:
         relievers_df = mark_drafted_column(relievers_df)
         relievers_df = filter_drafted(relievers_df, show_drafted)
         relievers_df = apply_custom_query(relievers_df)
+        relievers_df = filter_by_names(relievers_df)
 
         # Add FangraphsURL column
         if "PlayerId" in relievers_df.columns:
