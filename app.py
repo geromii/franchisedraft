@@ -333,6 +333,14 @@ def build_merged_hitters_df(discount=False, flatten=False):
     steamer_h = prep_projection_df(steamer_hitters_df, "Steamer", is_pitcher=False, discount=discount, flatten=flatten, war_col="WAR", rename_age_pos=True)
     batx_h = prep_projection_df(batx_hitters_df, "BatX", is_pitcher=False, discount=discount, flatten=flatten, war_col="WAR", rename_age_pos=True)
 
+    # Add wRC+ columns from each system if they exist
+    if "wRC+" in zips_hitters_df.columns:
+        zips_h["ZiPS_wRC+"] = zips_hitters_df["wRC+"]
+    if "wRC+" in steamer_hitters_df.columns:
+        steamer_h["Steamer_wRC+"] = steamer_hitters_df["wRC+"]
+    if "wRC+" in batx_hitters_df.columns:
+        batx_h["BatX_wRC+"] = batx_hitters_df["wRC+"]
+
     # Merge on MLBAMID
     merged = steamer_h.merge(zips_h, on="MLBAMID", how="outer", suffixes=("", "_ZiPS"))
     merged = merged.merge(batx_h, on="MLBAMID", how="outer", suffixes=("", "_BatX"))
@@ -346,6 +354,11 @@ def build_merged_hitters_df(discount=False, flatten=False):
     # Drop the extra demographic columns
     cols_to_drop = [c for c in merged.columns if c.endswith(("_ZiPS", "_BatX")) and c.split("_")[0] in ["Age", "Position", "NameASCII", "Team"]]
     merged = merged.drop(columns=cols_to_drop)
+    
+    # Calculate average wRC+ across systems
+    wrc_cols = [col for col in merged.columns if "wRC+" in col]
+    if wrc_cols:
+        merged["Avg_wRC+"] = merged[wrc_cols].mean(axis=1, skipna=True).round(0)
     
     return merged
 
@@ -498,6 +511,7 @@ with tab1:
         "ZiPSWAR", 
         "SteamerWAR", 
         "BatXWAR", 
+        "Avg_wRC+",  # Moved here - after WAR columns, before Career columns
         "ZiPSCareer", 
         "SteamerCareer", 
         "BatXCareer",
@@ -527,6 +541,7 @@ with tab1:
             "ZiPSCareer":  st.column_config.NumberColumn("ZiPS Career", format="%.1f"),
             "SteamerCareer": st.column_config.NumberColumn("Steamer600 Career", format="%.1f"),
             "BatXCareer":  st.column_config.NumberColumn("BatX Career", format="%.1f"),
+            "Avg_wRC+": st.column_config.NumberColumn("Avg wRC+", format="%d"),  # Format as integer
             "FangraphsURL": st.column_config.LinkColumn(
                 "Fangraphs",
                 display_text="Fangraphs"
