@@ -183,7 +183,10 @@ def filter_by_names(df):
         # Remove empty strings
         names = [name for name in names if name]
         if names:
-            return df[df["NameASCII"].isin(names)]
+            # Convert both the dataframe names and input names to lowercase for case-insensitive matching
+            df_names_lower = df["NameASCII"].str.lower()
+            names_lower = [name.lower() for name in names]
+            return df[df_names_lower.isin(names_lower)]
     return df
 
 @st.cache_data(ttl=0.15*3600)
@@ -202,7 +205,9 @@ def load_drafted_players():
     for idx, row in df.iterrows():
         if pd.notna(row['Player']):
             # idx + 1 is the draft position
-            drafted_dict[row['Player']] = idx + 1  # Use 'Player' since it's already ASCII
+            # Store both original and lowercase versions for case-insensitive matching
+            player_name = row['Player']
+            drafted_dict[player_name] = idx + 1
     return drafted_dict
 
 def filter_drafted(df, show_drafted):
@@ -401,7 +406,10 @@ pitchers_merged = build_merged_pitchers_df(discount=use_discount_rate, flatten=u
 def mark_drafted_column(df):
     df = df.copy()
     if "NameASCII" in df.columns:
-        df["DraftPos"] = df["NameASCII"].map(drafted_dict)
+        # Create a case-insensitive mapping from player names to draft positions
+        case_insensitive_dict = {k.lower(): v for k, v in drafted_dict.items()}
+        # Map using lowercase names for case-insensitive matching
+        df["DraftPos"] = df["NameASCII"].str.lower().map(case_insensitive_dict)
     else:
         df["DraftPos"] = None
     return df
@@ -431,12 +439,13 @@ with st.expander("Filter by Names"):
         # Get all unique names from our datasets
         all_names = set()
         if 'NameASCII' in hitters_merged.columns:
-            all_names.update(hitters_merged['NameASCII'].dropna())
+            all_names.update(hitters_merged['NameASCII'].str.lower().dropna())
         if 'NameASCII' in pitchers_merged.columns:
-            all_names.update(pitchers_merged['NameASCII'].dropna())
+            all_names.update(pitchers_merged['NameASCII'].str.lower().dropna())
         
-        drafted_names = [name for name in names if name in drafted_dict]
-        not_found_names = [name for name in names if name not in all_names and name]
+        # Case-insensitive matching for drafted and not found names
+        drafted_names = [name for name in names if name.lower() in {k.lower() for k in drafted_dict.keys()}]
+        not_found_names = [name for name in names if name.lower() not in all_names and name]
         
         if drafted_names:
             st.write("🎯 Already drafted: " + ", ".join(drafted_names))
@@ -708,7 +717,9 @@ with tab4:
     
     # Mark drafted players in BA Top 100
     ba_top_100_df = ba_top_100_df.copy()
-    ba_top_100_df["DraftPos"] = ba_top_100_df["Name"].map(drafted_dict)
+    # Create case-insensitive mapping for BA Top 100
+    case_insensitive_dict = {k.lower(): v for k, v in drafted_dict.items()}
+    ba_top_100_df["DraftPos"] = ba_top_100_df["Name"].str.lower().map(case_insensitive_dict)
     filtered_ba = filter_drafted(ba_top_100_df, show_drafted)
     filtered_ba = apply_custom_query(filtered_ba)
 
